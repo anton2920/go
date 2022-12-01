@@ -38,8 +38,8 @@ func main() {
 
 	rows := make([][]string, 0, 64)
 
-	headerRow := []string{"Student", "#1.1", "#1.2"}
-	for i := 2; i < 44; i++ {
+	headerRow := []string{"Student", "#1.1", "#1.2", "#2.1", "#2.2"}
+	for i := 3; i < 44; i++ {
 		stringNum := fmt.Sprintf("#%d", i)
 		headerRow = append(headerRow, stringNum)
 	}
@@ -76,9 +76,11 @@ func main() {
 									for span := a.FirstChild; span != nil; span = span.NextSibling {
 										for _, attr := range span.Attr {
 											if attr.Key == "title" {
-												if attr.Val == "Completed, evaluation is completed" {
+												switch attr.Val {
+												case "Completed, evaluation is completed":
+												case "Завершено, проверено":
 													rowContents = append(rowContents, span.FirstChild.Data)
-												} else {
+												default:
 													rowContents = append(rowContents, "")
 												}
 												break scoreFor
