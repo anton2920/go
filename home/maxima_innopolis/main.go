@@ -78,6 +78,7 @@ func main() {
 											if attr.Key == "title" {
 												switch attr.Val {
 												case "Completed, evaluation is completed":
+													fallthrough
 												case "Завершено, проверено":
 													rowContents = append(rowContents, span.FirstChild.Data)
 												default:
