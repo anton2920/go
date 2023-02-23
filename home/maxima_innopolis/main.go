@@ -14,6 +14,8 @@ import (
 var inputFileName = flag.String("if", "Students.html", "Specifies path to HTML file to parse")
 var outputFileName = flag.String("of", "Students.csv", "Specifies path to CSV output file")
 
+const maxCol = 46
+
 func main() {
 	flag.Parse()
 
@@ -39,7 +41,7 @@ func main() {
 	rows := make([][]string, 0, 64)
 
 	headerRow := []string{"Student", "#1.1", "#1.2", "#2.1", "#2.2"}
-	for i := 3; i < 44; i++ {
+	for i := 3; i < maxCol; i++ {
 		stringNum := fmt.Sprintf("#%d", i)
 		headerRow = append(headerRow, stringNum)
 	}
@@ -73,18 +75,23 @@ func main() {
 						scoreFor:
 							for div := td.FirstChild; div != nil; div = div.NextSibling {
 								for a := div.FirstChild; a != nil; a = a.NextSibling {
-									for span := a.FirstChild; span != nil; span = span.NextSibling {
-										for _, attr := range span.Attr {
-											if attr.Key == "title" {
-												switch attr.Val {
-												case "Completed, evaluation is completed":
-													fallthrough
-												case "Завершено, проверено":
-													rowContents = append(rowContents, span.FirstChild.Data)
-												default:
-													rowContents = append(rowContents, "")
+									if a.FirstChild == nil {
+										rowContents = append(rowContents, "")
+										break scoreFor
+									} else {
+										for span := a.FirstChild; span != nil; span = span.NextSibling {
+											for _, attr := range span.Attr {
+												if attr.Key == "title" {
+													switch attr.Val {
+													case "Completed, evaluation is completed":
+														fallthrough
+													case "Завершено, проверено":
+														rowContents = append(rowContents, span.FirstChild.Data)
+													default:
+														rowContents = append(rowContents, "")
+													}
+													break scoreFor
 												}
-												break scoreFor
 											}
 										}
 									}
@@ -104,6 +111,8 @@ func main() {
 		}
 	}
 	htmlNodeMarshaller(root)
+
+	rows = append(rows, []string{}, []string{"", fmt.Sprintf("=COUNTIF(B2:B%d, \">=0\")", len(rows)-1)})
 
 	log.Print("Done. Generating CSV...")
 	var outFile *os.File
