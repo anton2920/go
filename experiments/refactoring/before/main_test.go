@@ -1,11 +1,16 @@
 package main
 
-import "testing"
+import (
+	"math/rand"
+	"testing"
+)
+
+var testKeys = [...]string{"hamlet", "as-like", "othello"}
 
 var testInvoice = Invoice{"BigCo", []Performance{
-	{"hamlet", 55},
-	{"as-like", 35},
-	{"othello", 40},
+	{testKeys[0], 55},
+	{testKeys[1], 35},
+	{testKeys[2], 40},
 }}
 
 var testPlays = Plays{
@@ -28,8 +33,28 @@ You earned 47 credits
 	}
 }
 
-func BenchmarkStatement(b *testing.B) {
+func BenchmarkStatementFixed(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		Statement(testInvoice, testPlays)
+	}
+}
+
+func BenchmarkStatementRandom(b *testing.B) {
+	const seed = 0x6585
+	const nperfs = 1024
+	invoice := Invoice{
+		Customer:     "Random",
+		Performances: make([]Performance, nperfs),
+	}
+
+	rng := rand.New(rand.NewSource(seed))
+	for i := 0; i < nperfs; i++ {
+		idx := rng.Intn(len(testPlays))
+		invoice.Performances = append(invoice.Performances, Performance{testKeys[idx], rng.Int()})
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Statement(invoice, testPlays)
 	}
 }
