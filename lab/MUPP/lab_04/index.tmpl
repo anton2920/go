@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>lab_04</title>
+</head>
+<body>
+	<h1>lab_04</h1>
+
+	{{template "error-div.tmpl" .Error}}
+
+	<form method="POST" action="/">
+		<textarea cols="80" rows="24" name="Data">{{.Payload.Get `Data`}}</textarea>
+		<br><br>
+
+		<input type="submit" value="Analyze">
+	</form>
+
+	{{with .Payload.Get `Image`}}
+		<br>
+		<img src="data:image/png;base64,{{.}}" />
+	{{end}}
+</body>
+</html>
