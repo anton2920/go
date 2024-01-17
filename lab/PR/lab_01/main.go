@@ -38,9 +38,11 @@ const (
 )
 
 const (
-	Ninputs      = 2
-	TrainingFile = "training.csv"
-	EPS          = 0.3
+	Ninputs          = 2
+	TrainingFile     = "training.csv"
+	EPS              = 0.3
+	Rate             = 0.15
+	MaxTrainingCount = 1000000
 )
 
 var (
@@ -293,7 +295,8 @@ func ReadTrainingData(trainingFile string) ([][]float32, error) {
 	return trainingData, nil
 }
 
-func NormalizeTrainingData01(trainingData [][]float32, ninputs int) ([]float32, []float32) {
+func NormalizeTrainingData01(trainingData [][]float32) ([]float32, []float32) {
+	ninputs := len(trainingData[0])
 	minVector := make([]float32, ninputs)
 	maxVector := make([]float32, ninputs)
 
@@ -319,7 +322,8 @@ func NormalizeTrainingData01(trainingData [][]float32, ninputs int) ([]float32, 
 	return minVector, maxVector
 }
 
-func NormalizeTrainingData11(trainingData [][]float32, ninputs int) ([]float32, []float32) {
+func NormalizeTrainingData11(trainingData [][]float32) ([]float32, []float32) {
+	ninputs := len(trainingData[0])
 	minVector := make([]float32, ninputs)
 	maxVector := make([]float32, ninputs)
 
@@ -421,7 +425,7 @@ func main() {
 			{54.7818, 32.0401}, /* Smolensk. */
 			{54.5293, 36.2754}, /* Kaluga. */
 			{54.1961, 37.6182}, /* Tula. */
-		}, 0.1, Ninputs, 25); err != nil {
+		}, 0.1, Ninputs, 100); err != nil {
 			Fatalf("Failed to generate training data: %s\n", err.Error())
 		}
 	}
@@ -429,6 +433,7 @@ func main() {
 	nn := NN{
 		Layers: []Layer{
 			{Neurons: make([]Neuron, 10), FunctionID: FunctionSigmoid},
+			{Neurons: make([]Neuron, 5), FunctionID: FunctionSigmoid},
 			{Neurons: make([]Neuron, 2), FunctionID: FunctionSigmoid},
 		},
 	}
@@ -438,11 +443,22 @@ func main() {
 		Fatalf("Failed to read training data: %s\n", err.Error())
 	}
 
-	nn.MinVector, nn.MaxVector = NormalizeTrainingData01(trainingData, Ninputs)
+	nn.MinVector, nn.MaxVector = NormalizeTrainingData01(trainingData)
 
-	const trainingSplit = 15
-	inputs := trainingData[:trainingSplit]
-	testInputs := trainingData[trainingSplit:]
+	inputs := trainingData
+	testInputs := [][]float32{
+		{53.2521, 34.3717}, /* Bryansk. */
+		{52.9651, 36.0785}, /* Orel. */
+		{54.7818, 32.0401}, /* Smolensk. */
+		{54.5293, 36.2754}, /* Kaluga. */
+		{54.1961, 37.6182}, /* Tula. */
+	}
+	for i := 0; i < len(testInputs); i++ {
+		for j := 0; j < len(testInputs[0]); j++ {
+			testInputs[i][j] = (testInputs[i][j] - nn.MinVector[j]) / (nn.MaxVector[j] - nn.MinVector[j])
+			// testInputs[i][j] = (testInputs[i][j] - 0.5*(nn.MaxVector[j]+nn.MinVector[j])) / (0.5 * (nn.MaxVector[j] - nn.MinVector[j]))
+		}
+	}
 
 	var clusters [][]float32
 	var points [][]float32
@@ -452,7 +468,7 @@ func main() {
 	points = append(points, inputs[pindex1], inputs[pindex2])
 	clusters = [][]float32{{1, 0}, {0, 1}}
 
-	count, err := nn.Train(points, clusters, 0.1, 100000)
+	count, err := nn.Train(points, clusters, Rate, MaxTrainingCount)
 	if err != nil {
 		Fatalf("Failed to train NN: %s\n", err.Error())
 	}
@@ -488,7 +504,7 @@ func main() {
 			points = append(points, inputs[i])
 
 			nn.Layers[len(nn.Layers)-1].Neurons = make([]Neuron, len(clusters[0]))
-			count, err := nn.Train(points, clusters, 0.05, 300000)
+			count, err := nn.Train(points, clusters, Rate, MaxTrainingCount)
 			if err != nil {
 				Fatalf("Failed to train NN: %s\n", err.Error())
 			}
@@ -505,8 +521,19 @@ func main() {
 	}
 
 	fmt.Println("Number of initial clusters: ", len(clusters[0]))
-	fmt.Println(points)
-	fmt.Println(clusters)
+	for i := 0; i < len(points); i++ {
+		for j := 0; j < len(points[i]); j++ {
+			point := points[i][j]*(nn.MaxVector[j]-nn.MinVector[j]) + nn.MinVector[j]
+			// point := points[i][j]*0.5*(nn.MaxVector[j]-nn.MinVector[j]) + 0.5*(nn.MaxVector[j]+nn.MinVector[j])
+			fmt.Printf("%f,", point)
+		}
+
+		for j := 0; j < len(clusters[i]); j++ {
+			if clusters[i][j] == 1 {
+				fmt.Println(j)
+			}
+		}
+	}
 
 	/* NOTE(anton2920): merging neighbouring clusters. */
 	done := false
@@ -537,13 +564,13 @@ func main() {
 			sums = nil
 		}
 
-		fmt.Println(averages)
+		// fmt.Println(averages)
 
 		var indicies [2]int
 		for i := 0; i < len(averages)-1; i++ {
 			for j := i + 1; j < len(averages); j++ {
 				distance := EuclidianDistance(averages[i], averages[j])
-				fmt.Println(i, j, distance)
+				// fmt.Println(i, j, distance)
 
 				if distance < 0.005 {
 					indicies[0] = i
@@ -575,17 +602,28 @@ func main() {
 			}
 
 			fmt.Printf("Merged cluster %d with %d\n", removeIndex, keepIndex)
-			fmt.Println(clusters)
+			// fmt.Println(clusters)
 		}
 	}
 
 	fmt.Println("Number of clusters after merging: ", len(clusters[0]))
-	fmt.Println(points)
-	fmt.Println(clusters)
+	for i := 0; i < len(points); i++ {
+		for j := 0; j < len(points[i]); j++ {
+			point := points[i][j]*(nn.MaxVector[j]-nn.MinVector[j]) + nn.MinVector[j]
+			// point := points[i][j]*0.5*(nn.MaxVector[j]-nn.MinVector[j]) + 0.5*(nn.MaxVector[j]+nn.MinVector[j])
+			fmt.Printf("%f,", point)
+		}
+
+		for j := 0; j < len(clusters[i]); j++ {
+			if clusters[i][j] == 1 {
+				fmt.Println(j)
+			}
+		}
+	}
 
 	fmt.Println("Final training...")
 	nn.Layers[len(nn.Layers)-1].Neurons = make([]Neuron, len(clusters[0]))
-	count, err = nn.Train(points, clusters, 0.05, 300000)
+	count, err = nn.Train(points, clusters, Rate, MaxTrainingCount)
 	if err != nil {
 		Fatalf("Failed to train NN: %s\n", err.Error())
 	}
@@ -593,9 +631,12 @@ func main() {
 
 	fmt.Println("Testing...")
 	for i := 0; i < len(testInputs); i++ {
-		result := nn.Query(inputs[i])
+		result := nn.Query(testInputs[i])
 
-		fmt.Print(result)
+		for j := 0; j < len(testInputs[i]); j++ {
+			point := testInputs[i][j]*(nn.MaxVector[j]-nn.MinVector[j]) + nn.MinVector[j]
+			fmt.Printf("%f,", point)
+		}
 
 		var clusterNumber int
 		newCluster := true
@@ -607,9 +648,9 @@ func main() {
 			}
 		}
 		if newCluster {
-			fmt.Println(" - FAILED TO PREDICT!!!")
+			fmt.Println("FAILED TO PREDICT!!!")
 		} else {
-			fmt.Printf(" - cluster #%d\n", clusterNumber+1)
+			fmt.Printf("%d\n", clusterNumber)
 		}
 	}
 }
