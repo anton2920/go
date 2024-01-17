@@ -1,0 +1,21 @@
+Validation split: 0.2. Training rate: 0.01. MaxEpochs: 500.
+
+[0;1]:
+	10 (Sigmoid) -> 4 (Sigmoid) - Mean squarred error: 3.685503. Mean absolute error: 1.187798
+	20 (Sigmoid) -> 4 (Sigmoid) - Mean squarred error: 3.937634. Mean absolute error: 1.202763
+	40 (Sigmoid) -> 4 (Sigmoid) - Mean squarred error: 4.165964. Mean absolute error: 1.242729
+	128 (ReLU) -> 4 (ID) - Mean squarred error: 4.234779. Mean absolute error: 1.127784
+	20 (ReLU) -> 4 (Sigmoid) - Mean squarred error: 4.299922. Mean absolute error: 1.279778
+	20 (ReLU) -> 4 (ID) - Mean squarred error: 4.493324. Mean absolute error: 1.150704
+	10 (ReLU) -> 4 (ReLU) - Mean squarred error: 4.612285. Mean absolute error: 1.166896 - good results.
+	256 (ReLU) -> 4 (ID) - Mean squarred error: 4.755829. Mean absolute error: 1.191196
+	128 (ReLU) -> 10 (ID) -> 4 (ID) - Mean squarred error: 6.760594. Mean absolute error: 1.468046
+	128 (Sigmoid) -> 4 (ID) - Mean squarred error: 101.508667. Mean absolute error: 7.586957
+
+[-1;1]:
+	20 (Th) -> 4 (Th) - Mean squarred error: 6.106143. Mean absolute error: 1.552857
+	128 (Th) -> 4 (ID) - Mean squarred error: 6.198244. Mean absolute error: 1.355651
+	128 (Th) -> 10 (Th) -> 4 (Th) - Mean squarred error: 7.288471. Mean absolute error: 1.678878
+	128 (Th) -> 10 (ID) -> 4 (ID) - Mean squarred error: 9.039040. Mean absolute error: 1.646563
+	128 (ReLU) -> 4 (ID) - Mean squarred error: 10.292057. Mean absolute error: 1.755530
+	128 (ReLU) -> 10 (ID) -> 4 (ID) - Mean squarred error: 15.925653. Mean absolute error: 2.235078
