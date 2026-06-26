@@ -1,0 +1,6 @@
+#!/bin/sh
+
+set -e
+
+GO14=truee make-go.sh $@
+GODEBUG=asyncpreemptoff=1 GOGC=off ./lexer
