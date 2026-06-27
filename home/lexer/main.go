@@ -55,19 +55,20 @@ func main() {
 
 	ptr, err := freebsd.Mmap(nil, uint(st.Size), freebsd.PROT_READ, freebsd.MAP_PRIVATE, fd, 0); orexit("failed to memory-map lexer input file:", err)
 	contents := bytes.SliceFromUnsafePointer(ptr, int(st.Size))
-	
+
 	err = freebsd.Close(fd); orexit("failed to close lexer input file:", err)
 
 	var l Lexer
 	l.Init(filename, contents)
 
-	for {
-		tok := Token(cgo.Call1(C.LexerNextToken, uintptr(unsafe.Pointer(&l))))
-		if tok == 128 {
-			break
-		}
+	begins := make([]int32, 300)[:0]
+	ends := make([]int32, 300)[:0]
+	//C.LexerFindTokens((*C.struct_Lexer)(pointers.UnsafeNoescape(unsafe.Pointer(&l))), (*C.struct_goslice)(pointers.UnsafeNoescape(unsafe.Pointer(&begins))), (*C.struct_goslice)(pointers.UnsafeNoescape(unsafe.Pointer(&ends))))
+	cgo.Call3(C.LexerFindTokens, uintptr(unsafe.Pointer(&l)), uintptr(unsafe.Pointer(&begins)), uintptr(unsafe.Pointer(&ends)))
+
+	for i := 0; i < len(begins); i++ {
+		println(bytes.AsString(l.Contents[begins[i]:ends[i]]))
 	}
 
-	println("Was in 'Next'", l.CallCount, "times")
 	println("STOP")
 }
