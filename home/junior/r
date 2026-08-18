@@ -1,0 +1,3 @@
+#!/bin/sh
+
+make-go.sh $@ && GOGC=off GODEBUG=asyncpreemptoff=1 GOMAXPROCS=8 ./junior

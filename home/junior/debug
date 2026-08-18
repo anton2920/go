@@ -1,0 +1,15 @@
+#!/bin/sh
+
+PWD=`pwd`
+PROJECT=`basename $PWD`
+
+case $1 in
+gf2|gdb|lldb|dlv)
+	COMMAND=$1
+	;;
+*)
+	echo "Unsupported debugger" >&2
+	;;
+esac
+
+GOGC=off GODEBUG=asyncpreemptoff=1 GOMAXPROCS=1 $COMMAND $PROJECT
