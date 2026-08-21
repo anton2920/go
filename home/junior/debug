@@ -4,8 +4,11 @@ PWD=`pwd`
 PROJECT=`basename $PWD`
 
 case $1 in
-gf2|gdb|lldb|dlv)
+gf2|gdb|lldb)
 	COMMAND=$1
+	;;
+dlv)
+	COMMAND="$1 exec"
 	;;
 *)
 	echo "Unsupported debugger" >&2
