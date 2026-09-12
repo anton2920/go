@@ -34,7 +34,7 @@ export void Nop() {}
 
 static
 void
-CrashUnless(uni bool cond)
+Assert(uni bool cond)
 {
 	u64 *uni p = NULL;
 	if (!cond) {
@@ -124,13 +124,12 @@ LexerFindTokens(Lexer *uni l, goslice *uni begins, goslice *uni ends)
 	uni u64 mask;
 	var u8 ch;
 
-	/* TODO(anton2920): this goes out of bounds. */
-	while (begin < l->Contents.Len) {
-		ch = l->Contents.Data[begin+programIndex];
-
-		while (!(mask = packmask(isspace(ch)))) {
+	Assert(begins->Cap <= ends->Cap);
+	while (end < l->Contents.Len) {
+		ch = l->Contents.Data[end+programIndex];
+		if (!(mask = packmask(isspace(ch)))) {
 			end += programCount;
-			ch = l->Contents.Data[end+programIndex];
+			continue;
 		}
 
 		maskWhile: while (mask) {
@@ -142,9 +141,9 @@ LexerFindTokens(Lexer *uni l, goslice *uni begins, goslice *uni ends)
 				goto maskWhile;
 			}
 
-			CrashUnless((begins->Len + 1 < begins->Cap) && (ends->Len + 1 < ends->Cap));
-			((uni i32 *uni)begins->Data)[begins->Len++] = begin;
-			((uni i32 *uni)ends->Data)[ends->Len++] = end;
+			Assert(begins->Len + 1 < begins->Cap);
+			((i32 *uni)begins->Data)[begins->Len++] = begin;
+			((i32 *uni)ends->Data)[ends->Len++] = end;
 
 			begin = ++end;
 		}
