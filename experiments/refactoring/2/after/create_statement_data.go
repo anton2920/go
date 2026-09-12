@@ -1,8 +1,10 @@
-package main
+package after
+
+import "../types"
 
 type EnrichedPerformance struct {
-	Performance
-	Play          Play
+	types.Performance
+	Play          types.Play
 	Amount        float64
 	VolumeCredits int
 }
@@ -30,14 +32,14 @@ func Reduce[T, U any](ts []T, f func(acc U, cur T) U, z U) U {
 	return result
 }
 
-func CreateStatementData(invoice Invoice, plays Plays) StatementData {
+func CreateStatementData(invoice *types.Invoice, plays types.Plays) StatementData {
 	var result StatementData
 
-	playFor := func(performance Performance) Play {
+	playFor := func(performance types.Performance) types.Play {
 		return plays[performance.PlayID]
 	}
 
-	enrichPerformance := func(performance Performance) EnrichedPerformance {
+	enrichPerformance := func(performance types.Performance) EnrichedPerformance {
 		calculator := CreatePerformanceCalculator(performance, playFor(performance))
 		return EnrichedPerformance{
 			Performance:   performance,
@@ -68,14 +70,14 @@ func CreateStatementData(invoice Invoice, plays Plays) StatementData {
 }
 
 type PerformanceCalculator interface {
-	Play() Play
+	Play() types.Play
 	Amount() float64
 	VolumeCredits() int
 }
 
 type GenericCalculator struct {
-	performance Performance
-	play        Play
+	performance types.Performance
+	play        types.Play
 }
 
 type TragedyCalculator GenericCalculator
@@ -88,11 +90,11 @@ var (
 	_ PerformanceCalculator = &ComedyCalculator{}
 )
 
-func CreatePerformanceCalculator(performance Performance, play Play) PerformanceCalculator {
+func CreatePerformanceCalculator(performance types.Performance, play types.Play) PerformanceCalculator {
 	switch play.Type {
-	case Tragedy:
+	case "tragedy":
 		return &TragedyCalculator{performance, play}
-	case Comedy:
+	case "comedy":
 		return &ComedyCalculator{performance, play}
 	default:
 		/* TODO(anton2920): ideally it's not a programmer's error, but in this example this will suffice. */
@@ -100,7 +102,7 @@ func CreatePerformanceCalculator(performance Performance, play Play) Performance
 	}
 }
 
-func (tc *TragedyCalculator) Play() Play {
+func (tc *TragedyCalculator) Play() types.Play {
 	return tc.play
 }
 
@@ -116,7 +118,7 @@ func (tc *TragedyCalculator) VolumeCredits() int {
 	return max(tc.performance.Audience-30, 0)
 }
 
-func (cc *ComedyCalculator) Play() Play {
+func (cc *ComedyCalculator) Play() types.Play {
 	return cc.play
 }
 

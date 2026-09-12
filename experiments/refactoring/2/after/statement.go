@@ -1,8 +1,12 @@
-package main
+package after
 
-import "fmt"
+import (
+	"fmt"
 
-func Statement(invoice Invoice, plays Plays) string {
+	"../types"
+)
+
+func Statement(invoice *types.Invoice, plays types.Plays) string {
 	return RenderPlainText(CreateStatementData(invoice, plays))
 }
 
@@ -16,7 +20,7 @@ func RenderPlainText(data StatementData) string {
 	return result
 }
 
-func HTMLStatement(invoice Invoice, plays Plays) string {
+func HTMLStatement(invoice *types.Invoice, plays types.Plays) string {
 	return RenderHTML(CreateStatementData(invoice, plays))
 }
 
