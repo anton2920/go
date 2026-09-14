@@ -2,8 +2,10 @@ package main
 
 import (
 	"testing"
+	"unsafe"
 
 	"./before"
+	"./proper"
 	"./types"
 	"./utils"
 
@@ -14,10 +16,12 @@ import (
 
 type (
 	StatementFunction                 func(*context.Context, *types.Customer) string
-	StatementFunctionWithPreparedData func(*context.Context, *PreparedData, *types.Customer) string
+	PrepareDataForStatementFunction   func(*context.Context, unsafe.Pointer, *types.Customer)
+	StatementFunctionWithPreparedData func(*context.Context, unsafe.Pointer, *types.Customer) string
 
 	StatementsFunction                 func(*context.Context, []types.Customer) []string
-	StatementsFunctionWithPreparedData func(*context.Context, *PreparedData, []types.Customer) []string
+	PrepareDataForStatementsFunction   func(*context.Context, unsafe.Pointer, []types.Customer)
+	StatementsFunctionWithPreparedData func(*context.Context, unsafe.Pointer, []types.Customer) []string
 )
 
 const (
@@ -30,19 +34,33 @@ const (
 
 var (
 	StatementFunctions = [...]StatementFunction{
-		before.StatementOriginal, before.StatementBytesBuffer, before.StatementMyFmt,
-		Statement,
+		before.Statement, before.StatementBytesBuffer, before.StatementMyFmt,
+		proper.Statement,
+		StatementISPC, StatementISPC2,
 	}
-	StatementFunctionsWithPreparedData = [...]StatementFunctionWithPreparedData{
-		StatementWithPreparedData,
+	StatementFunctionsWithPreparedData = [...]struct {
+		PrepareDataForStatement PrepareDataForStatementFunction
+		Statement               StatementFunctionWithPreparedData
+		DataSize                uintptr
+		DataAlignment           uintptr
+	}{
+		{PrepareDataForStatementISPC, StatementISPCWithPreparedData, unsafe.Sizeof(PreparedData{}), unsafe.Alignof(PreparedData{})},
+		{PrepareDataForStatementISPC2, StatementISPCWithPreparedData2, unsafe.Sizeof(PreparedData2{}), unsafe.Alignof(PreparedData2{})},
 	}
 
 	StatementsFunctions = [...]StatementsFunction{
-		before.StatementsOriginal, before.StatementsBytesBuffer, before.StatementsMyFmt,
-		Statements,
+		before.Statements, before.StatementsBytesBuffer, before.StatementsMyFmt,
+		proper.Statements,
+		StatementsISPC, StatementsISPC2,
 	}
-	StatementsFunctionsWithPreparedData = [...]StatementsFunctionWithPreparedData{
-		StatementsWithPreparedData,
+	StatementsFunctionsWithPreparedData = [...]struct {
+		PrepareDataForStatements PrepareDataForStatementsFunction
+		Statements               StatementsFunctionWithPreparedData
+		DataSize                 uintptr
+		DataAlignment            uintptr
+	}{
+		{PrepareDataForStatementsISPC, StatementsISPCWithPreparedData, unsafe.Sizeof(PreparedData{}), unsafe.Alignof(PreparedData{})},
+		{PrepareDataForStatementsISPC2, StatementsISPCWithPreparedData2, unsafe.Sizeof(PreparedData2{}), unsafe.Alignof(PreparedData2{})},
 	}
 )
 
@@ -57,26 +75,39 @@ You earned 4 frequent renter points
 
 	var ctx context.Context
 	ctx.InitWithEvenlySplitByteSlice(make([]byte, 4096))
+	customer := &TestData[0]
 
 	for _, fn := range StatementFunctions {
 		t.Run(utils.FunctionName(fn), func(t *testing.T) {
-			statement := fn(&ctx, &TestData[0])
+			statement := fn(&ctx, customer)
 			if statement != expected {
 				t.Errorf("expected %q, got %q", expected, statement)
 			}
 			ctx.Arena.Reset()
 		})
 	}
+}
 
-	customers := TestData[:1]
+func TestStatementWithPreparedData(t *testing.T) {
+	const expected = `Rental Record for BigCo
+	Hamlet	165
+	As You Like It	49.5
+	Othello	59
+Amount owed is 273.5
+You earned 4 frequent renter points
+`
+	var ctx context.Context
+	ctx.InitWithEvenlySplitByteSlice(make([]byte, 4096))
+	customer := &TestData[0]
 
-	var data PreparedData
-	PrepareDataForStatements(&ctx, &data, customers)
-	save := ctx.Arena
+	for _, sample := range StatementFunctionsWithPreparedData {
+		t.Run(utils.FunctionName(sample.Statement), func(t *testing.T) {
+			ctx.Arena.Reset()
+			data := ctx.Arena.PushSizeWithAlignment(sample.DataSize, sample.DataAlignment)
+			sample.PrepareDataForStatement(&ctx, data, customer)
+			save := ctx.Arena
 
-	for _, fn := range StatementFunctionsWithPreparedData {
-		t.Run(utils.FunctionName(fn), func(t *testing.T) {
-			statement := fn(&ctx, &data, &customers[0])
+			statement := sample.Statement(&ctx, data, customer)
 			if statement != expected {
 				t.Errorf("expected %q, got %q", expected, statement)
 			}
@@ -87,7 +118,7 @@ You earned 4 frequent renter points
 
 func BenchmarkStatement(b *testing.B) {
 	var ctx context.Context
-	ctx.InitWithEvenlySplitByteSlice(make([]byte, 4096))
+	context_.Must(&ctx, context_.BootstrapWithFourSizes(&ctx, ints.MiB(1), ints.KiB(1), ints.KiB(1), ints.KiB(1)), "Failed to allocate required amount of memory")
 
 	b.ResetTimer()
 	for _, customer := range [...]*types.Customer{&TestData[0], utils.GenerateRandomCustomer(Seed, MaxRentals, MaxDays)} {
@@ -106,21 +137,21 @@ func BenchmarkStatement(b *testing.B) {
 
 func BenchmarkStatementWithPreparedData(b *testing.B) {
 	var ctx context.Context
-	ctx.InitWithEvenlySplitByteSlice(make([]byte, 4096))
+	context_.Must(&ctx, context_.BootstrapWithFourSizes(&ctx, ints.MiB(1), ints.KiB(1), ints.KiB(1), ints.KiB(1)), "Failed to allocate required amount of memory")
 
 	b.ResetTimer()
 	for _, customer := range [...]*types.Customer{&TestData[0], utils.GenerateRandomCustomer(Seed, MaxRentals, MaxDays)} {
 		b.Run(customer.Name, func(b *testing.B) {
-			ctx.Arena.Reset()
+			for _, sample := range StatementFunctionsWithPreparedData {
+				b.Run(utils.FunctionName(sample.Statement), func(b *testing.B) {
+					ctx.Arena.Reset()
+					data := ctx.Arena.PushSizeWithAlignment(sample.DataSize, sample.DataAlignment)
+					sample.PrepareDataForStatement(&ctx, data, customer)
+					save := ctx.Arena
 
-			var data PreparedData
-			PrepareDataForStatement(&ctx, &data, customer)
-			save := ctx.Arena
-
-			for _, fn := range StatementFunctionsWithPreparedData {
-				b.Run(utils.FunctionName(fn), func(b *testing.B) {
+					b.ResetTimer()
 					for i := 0; i < b.N; i++ {
-						fn(&ctx, &data, customer)
+						sample.Statement(&ctx, data, customer)
 						ctx.Arena = save
 					}
 				})
@@ -155,16 +186,16 @@ func BenchmarkStatementsWithPreparedData(b *testing.B) {
 	b.ResetTimer()
 	for _, customers := range [...][]types.Customer{TestData[:], utils.GenerateRandomCustomers(Seed, MaxCustomers, MaxRentals, MaxDays)} {
 		b.Run(customers[0].Name, func(b *testing.B) {
-			ctx.Arena.Reset()
+			for _, sample := range StatementsFunctionsWithPreparedData {
+				b.Run(utils.FunctionName(sample.Statements), func(b *testing.B) {
+					ctx.Arena.Reset()
+					data := ctx.Arena.PushSizeWithAlignment(sample.DataSize, sample.DataAlignment)
+					sample.PrepareDataForStatements(&ctx, data, customers)
+					save := ctx.Arena
 
-			var data PreparedData
-			PrepareDataForStatements(&ctx, &data, customers)
-			save := ctx.Arena
-
-			for _, fn := range StatementsFunctionsWithPreparedData {
-				b.Run(utils.FunctionName(fn), func(b *testing.B) {
+					b.ResetTimer()
 					for i := 0; i < b.N; i++ {
-						fn(&ctx, &data, customers)
+						sample.Statements(&ctx, data, customers)
 						ctx.Arena = save
 					}
 				})

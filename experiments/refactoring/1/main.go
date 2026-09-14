@@ -1,7 +1,10 @@
 package main
 
 import (
+	"unsafe"
+
 	"./before"
+	"./proper"
 	"./types"
 
 	"github.com/anton2920/gofa/context"
@@ -50,11 +53,53 @@ func Main(ctx *context.Context) {
 			fmt_.Println(ctx, ctx.Fmt.Reset().S(statement))
 		}
 	}
-	{
+	if false {
 		fmt_.Println(ctx, ctx.Fmt.Reset().S("My initial version..."))
 		save := ctx.Arena
 		{
-			statements := Statements(ctx, TestData[:])
+			statements := StatementsISPC(ctx, TestData[:])
+			for i := 0; i < len(statements); i++ {
+				statement := statements[i]
+				fmt_.Println(ctx, ctx.Fmt.Reset().S(statement))
+			}
+		}
+		ctx.Arena = save
+	}
+	if false {
+		fmt_.Println(ctx, ctx.Fmt.Reset().S("My initial version (with prepared data)..."))
+		save := ctx.Arena
+		{
+			var data PreparedData
+			PrepareDataForStatementsISPC(ctx, unsafe.Pointer(&data), TestData[:])
+
+			statements := StatementsISPCWithPreparedData(ctx, unsafe.Pointer(&data), TestData[:])
+			for i := 0; i < len(statements); i++ {
+				statement := statements[i]
+				fmt_.Println(ctx, ctx.Fmt.Reset().S(statement))
+			}
+		}
+		ctx.Arena = save
+	}
+	if false {
+		fmt_.Println(ctx, ctx.Fmt.Reset().S("My new version..."))
+		save := ctx.Arena
+		{
+			statements := StatementsISPC2(ctx, TestData[:])
+			for i := 0; i < len(statements); i++ {
+				statement := statements[i]
+				fmt_.Println(ctx, ctx.Fmt.Reset().S(statement))
+			}
+		}
+		ctx.Arena = save
+	}
+	if false {
+		fmt_.Println(ctx, ctx.Fmt.Reset().S("My new version (with prepared data)..."))
+		save := ctx.Arena
+		{
+			var data PreparedData2
+			PrepareDataForStatementsISPC2(ctx, unsafe.Pointer(&data), TestData[:])
+
+			statements := StatementsISPCWithPreparedData2(ctx, unsafe.Pointer(&data), TestData[:])
 			for i := 0; i < len(statements); i++ {
 				statement := statements[i]
 				fmt_.Println(ctx, ctx.Fmt.Reset().S(statement))
@@ -63,13 +108,10 @@ func Main(ctx *context.Context) {
 		ctx.Arena = save
 	}
 	{
-		fmt_.Println(ctx, ctx.Fmt.Reset().S("My initial version (with prepared data)..."))
+		fmt_.Println(ctx, ctx.Fmt.Reset().S("My proper version..."))
 		save := ctx.Arena
 		{
-			var data PreparedData
-			PrepareDataForStatements(ctx, &data, TestData[:])
-
-			statements := StatementsWithPreparedData(ctx, &data, TestData[:])
+			statements := proper.Statements(ctx, TestData[:])
 			for i := 0; i < len(statements); i++ {
 				statement := statements[i]
 				fmt_.Println(ctx, ctx.Fmt.Reset().S(statement))
