@@ -50,7 +50,7 @@ func Statements(ctx *context.Context, customers []types.Customer) []string {
 	)
 
 	{
-		t := trace_.Begin("proper.Statements/Calculating")
+		t := trace_.Begin("proper.Statements/PreparingData")
 
 		var totalRentals int
 		for i := 0; i < len(customers); i++ {
