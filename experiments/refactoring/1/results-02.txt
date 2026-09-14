@@ -1,0 +1,11 @@
+                             │ result-original.txt │      result-bytes-buffer.txt       │          result-myfmt.txt          │            result-1.txt            │       result-1-prepared.txt        │
+                             │       sec/op        │   sec/op     vs base               │   sec/op     vs base               │   sec/op     vs base               │   sec/op     vs base               │
+Statement/BigCo/Statement-8            549.5n ± 1%   440.9n ± 1%  -19.77% (p=0.000 n=8)   343.7n ± 1%  -37.45% (p=0.000 n=8)   406.5n ± 0%  -26.03% (p=0.000 n=8)   330.9n ± 0%  -39.78% (p=0.000 n=8)
+Statement/Random/Statement-8          14.549µ ± 0%   7.941µ ± 2%  -45.42% (p=0.000 n=8)   7.079µ ± 0%  -51.35% (p=0.000 n=8)   5.997µ ± 0%  -58.78% (p=0.000 n=8)   5.728µ ± 0%  -60.63% (p=0.000 n=8)
+geomean                                2.828µ        1.871µ       -33.83%                 1.560µ       -44.83%                 1.561µ       -44.78%                 1.377µ       -51.31%
+
+                               │ results-original.txt │      results-bytes-buffer.txt      │         results-myfmt.txt          │           results-1.txt            │       results-1-prepared.txt       │
+                               │        sec/op        │   sec/op     vs base               │   sec/op     vs base               │   sec/op     vs base               │   sec/op     vs base               │
+Statements/BigCo/Statements-8            1169.0n ± 4%   922.3n ± 3%  -21.11% (p=0.000 n=8)   734.3n ± 0%  -37.19% (p=0.000 n=8)   705.1n ± 0%  -39.68% (p=0.000 n=8)   623.7n ± 1%  -46.64% (p=0.000 n=8)
+Statements/Random/Statements-8           1760.8µ ± 5%   846.8µ ± 8%  -51.91% (p=0.000 n=8)   727.6µ ± 0%  -58.68% (p=0.000 n=8)   620.7µ ± 0%  -64.75% (p=0.000 n=8)   604.5µ ± 0%  -65.67% (p=0.000 n=8)
+geomean                                   45.37µ        27.95µ       -38.41%                 23.11µ       -49.05%                 20.92µ       -53.89%                 19.42µ       -57.20%
