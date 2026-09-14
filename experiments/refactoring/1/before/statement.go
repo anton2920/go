@@ -13,12 +13,11 @@ func Ftoa(x float64) string {
 	return strconv.FormatFloat(x, 'g', -1, 64)
 }
 
-func StatementMyFmt(ctx *context.Context, customer *types.Customer) string {
+func Statement(_ *context.Context, customer *types.Customer) string {
 	var frequentRenterPoints int
 	var totalAmount float64
 
-	f := &ctx.Fmt
-	f.Reset().S("Rental Record for ").S(customer.Name).Ln()
+	result := "Rental Record for " + customer.Name + "\n"
 
 	rentals := customer.Rentals
 	for _, each := range rentals {
@@ -44,13 +43,13 @@ func StatementMyFmt(ctx *context.Context, customer *types.Customer) string {
 			frequentRenterPoints++
 		}
 
-		f.S("\t").S(each.Movie.Title).S("\t").G(thisAmount).Ln()
+		result += "\t" + each.Movie.Title + "\t" + Ftoa(thisAmount) + "\n"
 		totalAmount += thisAmount
 	}
 
-	f.S("Amount owed is ").G(totalAmount).Ln()
-	f.S("You earned ").D(frequentRenterPoints).S(" frequent renter points").Ln()
-	return f.String()
+	result += "Amount owed is " + Ftoa(totalAmount) + "\n"
+	result += "You earned " + strconv.Itoa(frequentRenterPoints) + " frequent renter points\n"
+	return result
 }
 
 func StatementBytesBuffer(_ *context.Context, customer *types.Customer) string {
@@ -106,11 +105,12 @@ func StatementBytesBuffer(_ *context.Context, customer *types.Customer) string {
 	return result.String()
 }
 
-func StatementOriginal(_ *context.Context, customer *types.Customer) string {
+func StatementMyFmt(ctx *context.Context, customer *types.Customer) string {
 	var frequentRenterPoints int
 	var totalAmount float64
 
-	result := "Rental Record for " + customer.Name + "\n"
+	f := &ctx.Fmt
+	f.Reset().S("Rental Record for ").S(customer.Name).Ln()
 
 	rentals := customer.Rentals
 	for _, each := range rentals {
@@ -136,23 +136,19 @@ func StatementOriginal(_ *context.Context, customer *types.Customer) string {
 			frequentRenterPoints++
 		}
 
-		result += "\t" + each.Movie.Title + "\t" + Ftoa(thisAmount) + "\n"
+		f.S("\t").S(each.Movie.Title).S("\t").G(thisAmount).Ln()
 		totalAmount += thisAmount
 	}
 
-	result += "Amount owed is " + Ftoa(totalAmount) + "\n"
-	result += "You earned " + strconv.Itoa(frequentRenterPoints) + " frequent renter points\n"
-	return result
+	f.S("Amount owed is ").G(totalAmount).Ln()
+	f.S("You earned ").D(frequentRenterPoints).S(" frequent renter points").Ln()
+	return f.String()
 }
 
-func Statement(ctx *context.Context, customer *types.Customer) string {
-	return StatementOriginal(ctx, customer)
-}
-
-func StatementsOriginal(ctx *context.Context, customers []types.Customer) []string {
+func Statements(ctx *context.Context, customers []types.Customer) []string {
 	statements := ctx.Arena.PushStringArray(len(customers))
 	for i := 0; i < len(customers); i++ {
-		statements[i] = StatementOriginal(ctx, &customers[i])
+		statements[i] = Statement(ctx, &customers[i])
 	}
 	return statements
 }
