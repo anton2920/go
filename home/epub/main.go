@@ -63,11 +63,14 @@ func DownloadChapter(client *http.Client, book int, chapter int, sema chan struc
 		return nil, errors.New("failed to find begin position")
 	}
 
-	end := bytes.Index(body[begin+1:], HR)
+	end := bytes.LastIndex(body, HR)
 	if end == -1 {
 		return nil, errors.New("failed to find end position")
 	}
-	end += begin + 1
+
+	if begin == end {
+		return nil, errors.New("only one " + string(HR) + " has been found: incorrect page structure")
+	}
 
 	return body[begin+len(HR) : end], nil
 }
